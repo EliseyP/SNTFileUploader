@@ -332,7 +332,7 @@ if __name__ == "__main__":
         logger_obj.addHandler(streamHandler)
 
     # Журнал приложения.
-    _app_log_file = f'{basename}.log'
+    _app_log_file = Path(__file__).resolve().parent.joinpath(f'{basename}.log')
     if dirs_files.app_log_dir:
         _app_log_file = dirs_files.app_log_dir.joinpath(f'{basename}.log')
     setup_logger(logger_name='log_app',
