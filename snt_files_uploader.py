@@ -188,8 +188,9 @@ class Settings:
         self.root_data_dir = None
         self.watched_dir = None
         self.sent_dir = None
-        self.log_dir = None
-        self.log_file = None
+        self.sent_log_dir = None
+        self.app_log_dir = None
+        self.sent_log_file = None
         self.url_for_upload = None
         self.is_sent_logging = False
         self.is_archive_sent_files = False
@@ -219,13 +220,17 @@ class Settings:
         if _sent_dir:
             self.sent_dir = _sent_dir
 
-        _log_dir = config.get("DIRS", "log_dir")
-        if _log_dir:
-            self.log_dir = _log_dir
+        _sent_log_dir = config.get("DIRS", "sent_log_dir")
+        if _sent_log_dir:
+            self.sent_log_dir = _sent_log_dir
 
-        _log_file = config.get("FILES", "log_file")
-        if _log_file:
-            self.log_file = _log_file
+        _app_log_dir = config.get("DIRS", "app_log_dir")
+        if _app_log_dir:
+            self.app_log_dir = _app_log_dir
+
+        _sent_log_file = config.get("FILES", "sent_log_file")
+        if _sent_log_file:
+            self.sent_log_file = _sent_log_file
 
         _is_sent_logging = config.getboolean("LOG", "is_sent_logging")
         if _is_sent_logging:
@@ -257,12 +262,14 @@ class Settings:
 class DirsFiles:
     """Каталоги и файлы.
 
+    Если при запуске программы каталоги не созданы, они создаются автоматически.
     """
     def __init__(self, _settings: Settings = None):
         self.root_dir = None
         self.watched_dir = None
         self.sent_dir = None
-        self.log_dir = None
+        self.sent_log_dir = None
+        self.app_log_dir = None
         self.log_file = None
 
         if not _settings:
@@ -271,14 +278,18 @@ class DirsFiles:
         self.root_dir = Path(_settings.root_data_dir)
         self.watched_dir = self.root_dir.joinpath(_settings.watched_dir)
         self.sent_dir = self.root_dir.joinpath(_settings.sent_dir)
-        self.log_dir = self.root_dir.joinpath(_settings.log_dir)
-        self.log_file = self.log_dir.joinpath(_settings.log_file)
+        self.sent_log_dir = self.root_dir.joinpath(_settings.sent_log_dir)
+        self.log_file = self.sent_log_dir.joinpath(_settings.sent_log_file)
 
         dirs_list = [self.root_dir, self.watched_dir,]
         if _settings.is_archive_sent_files:
             dirs_list.append(self.sent_dir)
         if _settings.is_sent_logging:
-            dirs_list.append(self.log_dir)
+            dirs_list.append(self.sent_log_dir)
+
+        if _settings.app_log_dir:
+            self.app_log_dir = Path(_settings.app_log_dir)
+            dirs_list.append(self.app_log_dir)
 
         for _dir in dirs_list:
             if not _dir.exists():
@@ -301,6 +312,7 @@ if __name__ == "__main__":
     settings = Settings(ini_file)
     _log_level = logging.INFO if settings.app_log_level == 'INFO' else logging.DEBUG
 
+    # Каталоги и файлы.
     dirs_files = DirsFiles(settings)
 
     def setup_logger(logger_name, log_file, level=logging.INFO, format_string=None):
@@ -320,8 +332,11 @@ if __name__ == "__main__":
         logger_obj.addHandler(streamHandler)
 
     # Журнал приложения.
+    _app_log_file = f'{basename}.log'
+    if dirs_files.app_log_dir:
+        _app_log_file = dirs_files.app_log_dir.joinpath(f'{basename}.log')
     setup_logger(logger_name='log_app',
-                 log_file=f'{basename}.log',
+                 log_file=_app_log_file,
                  level=_log_level)
     logger_app = logging.getLogger('log_app')
 
@@ -340,6 +355,3 @@ if __name__ == "__main__":
     app.logger_sent = logger_sent
 
     app.upload_several_files_to_server()
-
-    # Вариант с отслеживанием событий изменений файловой системы.
-    # app.start_watching()
