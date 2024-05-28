@@ -1,18 +1,16 @@
 import configparser
 import os
-from datetime import datetime, date, time
+from datetime import datetime
 # import inspect
 import logging
 from logging import Logger
-import time
+# import time
 from configparser import ExtendedInterpolation
 from pathlib import Path
-from shutil import make_archive
+# from shutil import make_archive
 from typing import Optional
 from zipfile import ZipFile
 
-from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler
 import requests
 
 basename = "snt_files_uploader"
@@ -35,23 +33,6 @@ class UploaderApp:
 
     def __str__(self):
         return f"{self.__class__.__name__}"
-
-    def start_watching(self):
-        self.logger_app.info(f'START watching at directory "{self.dirs_files.watched_dir}".')
-        event_handler = Handler(self, patterns=['*.csv*'])
-        observer = Observer()
-        observer.schedule(
-            event_handler,
-            self.dirs_files.watched_dir.as_posix(),
-            recursive=False)
-        observer.start()
-        try:
-            while True:
-                time.sleep(0.1)
-        except KeyboardInterrupt:
-            observer.stop()
-        observer.join()
-        self.logger_app.info(f'STOP watching at directory "{self.dirs_files.watched_dir}".')
 
     def archive_sent_file(self, sent_file_path: Path):
         """Архивирование файла с данными.
@@ -81,16 +62,6 @@ class UploaderApp:
         else:
             self.logger_app.debug(f'File "{sent_file_path.name}" archived to "{archive_file_path.name}"')
             return archive_file_path
-
-    def write_record_to_logfile(self, sent_file_path: Path):
-        """Журналирование загрузки на сервер (и архивации)
-
-        :param sent_file_path: Путь к файлу с данными.
-        :type sent_file_path: Path
-        :return:
-        :rtype:
-        """
-        return False
 
     def send_email(self, sent_file_path: Path):
         """Рассылка показаний счетчика.
@@ -152,6 +123,7 @@ class UploaderApp:
         except OSError:
             return
         if not files_list:
+            self.logger_app.info(f'STOP data files uploading. No files for uploading.')
             return
 
         def process_one_file(_file: Path):
@@ -222,6 +194,7 @@ class Settings:
         self.is_sent_logging = False
         self.is_archive_sent_files = False
         self.is_send_emails = False
+        self.smtp_server = None
         self.app_log_level = None
 
         if not ini_file or not Path(ini_file).exists():
@@ -269,6 +242,10 @@ class Settings:
         _is_send_emails = config.getboolean("EMAIL", "is_send_emails")
         if _is_send_emails:
             self.is_send_emails = _is_send_emails
+
+        _smtp_server = config.get("EMAIL", "smtp_server")
+        if _smtp_server:
+            self.smtp_server = _smtp_server
 
     def __repr__(self):
         return f"{self.__class__.__qualname__}"
@@ -318,36 +295,6 @@ class DirsFiles:
 
     def __repr__(self):
         return f"{self.__class__.__qualname__}"
-
-
-class Handler(PatternMatchingEventHandler):
-    """Обработчик событий изменений файловой системы.
-
-    """
-    def __init__(self, _app, patterns):
-        self.app: UploaderApp = _app
-        self.src_created_path = None
-        super().__init__(patterns)
-
-    def on_created(self, event):
-        self.src_created_path = Path(event.src_path)
-        self.app.logger_app.debug(f'Created file: "{self.src_created_path}".')
-        try:
-            result = self.app.upload_file_to_server(self.src_created_path)
-        except Exception as e:
-            raise e
-        else:
-            if result:
-                if self.app.settings.is_archive_sent_files:
-                    self.app.archive_sent_file(self.src_created_path)
-
-                if self.app.settings.is_sent_logging:
-                    self.app.write_record_to_logfile(self.src_created_path)
-
-                if self.app.settings.is_send_emails:
-                    self.app.send_email(self.src_created_path)
-        finally:
-            self.src_created_path = None
 
 
 if __name__ == "__main__":
