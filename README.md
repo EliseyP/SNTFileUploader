@@ -40,3 +40,6 @@ Uploader csv files to webserver
 
 ***
 Для работы скрипта необходимо установить python-модуль `requests`.
+
+***
+Конфигурационный файл: `config.ini`   
