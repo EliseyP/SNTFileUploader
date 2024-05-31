@@ -42,7 +42,7 @@ Uploader csv files to webserver
 * email_validator
 
 ***
-Конфигурационный файл: [config.ini](emails_list.csv).  
+Конфигурационный файл: [config.ini](config.ini).  
 Необходимые параметры: 
 - путь к каталогу `root_data_dir`.  
 - url сервера загрузки `url_for_upload`.
