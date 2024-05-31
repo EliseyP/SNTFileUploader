@@ -19,8 +19,6 @@ basename = "snt_files_uploader"
 
 config_ini_name = f"config.ini"
 ini_file = Path(__file__).resolve().parent.joinpath(config_ini_name).as_posix()
-emails_list_name = 'emails_list.csv'
-# emails_list_file = Path(__file__).resolve().parent.joinpath(emails_list_name).as_posix()
 
 
 class UploaderApp:

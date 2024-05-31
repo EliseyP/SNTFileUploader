@@ -54,7 +54,7 @@ Uploader csv files to webserver
 `python.exe C:\[Путь к каталогу со скриптом]\SNTFileUploader\snt_file_uploader.py`
 
 ## Список почтовых адресов для рассылки
-* Файл со списком адресов: [emails_list.csv](emails_list.csv)  
+* Файл со списком адресов: [emails_list.csv](emails_list.csv)  (имя файла задается в конфиге).  
 * Формат cтрок: `№_участка,email_1,email_2,...`  
 * Заголовка в csv-файле нет.  
 * Количество столбцов переменное.
