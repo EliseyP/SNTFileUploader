@@ -37,7 +37,9 @@ Uploader csv files to webserver
 Работает и на Linux.
 
 ***
-Для работы скрипта необходимо установить python-модуль `requests`.
+Для работы скрипта необходимо установить python-модули: 
+* requests
+* email_validator
 
 ***
 Конфигурационный файл: [config.ini](emails_list.csv).  
