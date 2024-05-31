@@ -376,6 +376,5 @@ if __name__ == "__main__":
 
     # Заготовка-пример работы со списком адресов рассылки.
     # if app.emails_list_reader:
-    #     app.emails_list_reader.get_all_data_dict_from_csv()
     #     garden_numbers_list = app.emails_list_reader.get_garden_numbers_list()
     #     print(f'Участки: {",".join(garden_numbers_list)}.')
