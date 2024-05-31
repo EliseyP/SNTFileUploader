@@ -13,12 +13,14 @@ from zipfile import ZipFile
 
 import requests
 
+from EmailsListReader import EmailsListReader
+
 basename = "snt_files_uploader"
 
 config_ini_name = f"config.ini"
 ini_file = Path(__file__).resolve().parent.joinpath(config_ini_name).as_posix()
 emails_list_name = 'emails_list.csv'
-emails_list_file = Path(__file__).resolve().parent.joinpath(emails_list_name).as_posix()
+# emails_list_file = Path(__file__).resolve().parent.joinpath(emails_list_name).as_posix()
 
 
 class UploaderApp:
@@ -27,12 +29,19 @@ class UploaderApp:
         self.dirs_files: Optional[DirsFiles] = None
         self.logger_app: Optional[Logger] = None
         self.logger_sent: Optional[Logger] = None
+        self.emails_list_reader: Optional[EmailsListReader] = None
 
     def __repr__(self):
         return f"{self.__class__.__qualname__}"
 
     def __str__(self):
         return f"{self.__class__.__name__}"
+
+    def init_emails_list_reader(self):
+        try:
+            self.emails_list_reader = EmailsListReader(self.dirs_files.emails_list_file, app.logger_app)
+        except ValueError as e:
+            self.logger_app.error(f'Error: {e}')
 
     def archive_sent_file(self, sent_file_path: Path):
         """Архивирование файла с данными.
@@ -51,13 +60,13 @@ class UploaderApp:
         try:
             os.chdir(sent_file_path.parent)
         except OSError as e:
-            self.logger_app.error(f'Error changing directory: "{sent_file_path.parent}".')
+            self.logger_app.error(f'Error changing directory: "{sent_file_path.parent}". {e}.')
             return None
         try:
             with ZipFile(archive_file_path, "w") as myzip:
                 myzip.write(sent_file_path.name)
         except Exception as e:
-            self.logger_app.error(f'Erorr archiving file: "{sent_file_path}".')
+            self.logger_app.error(f'Erorr archiving file: "{sent_file_path}". {e}.')
             return None
         else:
             self.logger_app.debug(f'File "{sent_file_path.name}" archived to "{archive_file_path.name}"')
@@ -118,6 +127,7 @@ class UploaderApp:
         :rtype:
         """
         self.logger_app.info(f'Start data files uploading.')
+
         try:
             files_list = self.get_files_from_watched_dir()
         except OSError:
@@ -140,7 +150,7 @@ class UploaderApp:
                 try:
                     _file.unlink()
                 except OSError as e:
-                    self.logger_app.error(f'Error deleting file: "{_file}"')
+                    self.logger_app.error(f'Error deleting file: "{_file}". {e}')
                     return None
                 else:
                     sent_log_string = sent_log_string[:-1] + f' and archived to "{archive_result.name}".'
@@ -196,6 +206,7 @@ class Settings:
         self.is_archive_sent_files = False
         self.is_send_emails = False
         self.smtp_server = None
+        self.emails_list_file = None
         self.app_log_level = None
 
         if not ini_file or not Path(ini_file).exists():
@@ -248,6 +259,10 @@ class Settings:
         if _is_send_emails:
             self.is_send_emails = _is_send_emails
 
+        _emails_list_file = config.get("EMAIL", "emails_list_file")
+        if _emails_list_file:
+            self.emails_list_file = _emails_list_file
+
         _smtp_server = config.get("EMAIL", "smtp_server")
         if _smtp_server:
             self.smtp_server = _smtp_server
@@ -271,6 +286,7 @@ class DirsFiles:
         self.sent_log_dir = None
         self.app_log_dir = None
         self.log_file = None
+        self.emails_list_file = None
 
         if not _settings:
             raise ValueError("No settings")
@@ -280,6 +296,8 @@ class DirsFiles:
         self.sent_dir = self.root_dir.joinpath(_settings.sent_dir)
         self.sent_log_dir = self.root_dir.joinpath(_settings.sent_log_dir)
         self.log_file = self.sent_log_dir.joinpath(_settings.sent_log_file)
+
+        self.emails_list_file = Path(__file__).resolve().parent.joinpath(_settings.emails_list_file)
 
         dirs_list = [self.root_dir, self.watched_dir,]
         if _settings.is_archive_sent_files:
@@ -354,4 +372,12 @@ if __name__ == "__main__":
     app.logger_app = logger_app
     app.logger_sent = logger_sent
 
+    app.init_emails_list_reader()
+
     app.upload_several_files_to_server()
+
+    # Заготовка-пример работы со списком адресов рассылки.
+    # if app.emails_list_reader:
+    #     app.emails_list_reader.get_all_data_dict_from_csv()
+    #     garden_numbers_list = app.emails_list_reader.get_garden_numbers_list()
+    #     print(f'Участки: {",".join(garden_numbers_list)}.')
